@@ -14,9 +14,10 @@ def get_args():
     ### path ###
     parser.add_argument('--dict', type=str, default='data_creation/prepare_data/dict/CP.pkl')
     parser.add_argument('--dataset', type=str, choices=["pop909", "pop1k7", "ASAP", "pianist8"
-        , "emopia", "tagatraum", "lmd"])
+        , "emopia", "lmd"])
 
-    ### output ###    
+    ### output ###
+    parser.add_argument('--dataset_dir', default="Data/Dataset")
     parser.add_argument('--output_dir', default="Data/CP_data/pretrain")
 
     args = parser.parse_args()
@@ -27,7 +28,6 @@ def extract(files, args, model):
     '''
     files: list of midi path
     mode: 'train', 'valid', 'test', ''
-    args.input_dir: '' or the directory to your custom data
     args.output_dir: the directory to store the data (and answer data) in CP representation
     '''
     assert len(files)
@@ -42,6 +42,7 @@ def extract(files, args, model):
 
 def main(): 
     args = get_args()
+    dataset_dir = args.dataset_dir
     pathlib.Path(args.output_dir).mkdir(parents=True, exist_ok=True)
     
     # initialize model
@@ -55,38 +56,26 @@ def main():
         dataset = 'joann8512-Pianist8-ab9f541'
 
     if args.dataset == 'pop909' or args.dataset == 'emopia':
-        train_files = glob.glob(f'Data/Dataset/{dataset}/train/*.mid')
-        valid_files = glob.glob(f'Data/Dataset/{dataset}/valid/*.mid')
-        test_files = glob.glob(f'Data/Dataset/{dataset}/test/*.mid')
+        train_files = glob.glob(os.path.join(dataset_dir, f'{dataset}/train/*.mid'))
+        valid_files = glob.glob(os.path.join(dataset_dir, f'{dataset}/valid/*.mid'))
+        test_files = glob.glob(os.path.join(dataset_dir, f'{dataset}/test/*.mid'))
         files = sorted(train_files + valid_files + test_files)
 
     elif args.dataset == 'pianist8':
-        train_files = glob.glob(f'Data/Dataset/{dataset}/train/*/*.mid')
-        valid_files = glob.glob(f'Data/Dataset/{dataset}/valid/*/*.mid')
-        test_files = glob.glob(f'Data/Dataset/{dataset}/test/*/*.mid')
-        files = sorted(train_files + valid_files + test_files)
-
-    elif args.dataset == 'tagatraum':
-        train_files = glob.glob(f'../tagatraum/train_clean/*/*.mid')
-        valid_files = glob.glob(f'../tagatraum/valid_clean/*/*.mid')
-        test_files = glob.glob(f'../tagatraum/test_clean/*/*.mid')
+        train_files = glob.glob(os.path.join(dataset_dir, f'{dataset}/train/*/*.mid'))
+        valid_files = glob.glob(os.path.join(dataset_dir, f'{dataset}/valid/*/*.mid'))
+        test_files = glob.glob(os.path.join(dataset_dir, f'{dataset}/test/*/*.mid'))
         files = sorted(train_files + valid_files + test_files)
 
     elif args.dataset == 'lmd':
-        files = glob.glob(f'../lmd_matched/*/*/*/*/*.mid')
+        files = glob.glob(os.path.join(dataset_dir, f'*/*/*/*/*.mid'))
 
     elif args.dataset == 'pop1k7':
-        files = glob.glob('Data/Dataset/Pop1K7/midi_transcribed/*/*.midi')
+        files = glob.glob(os.path.join(dataset_dir, f'Pop1K7/midi_transcribed/*/*.midi'))
 
     elif args.dataset == 'ASAP':
-        files = pickle.load(open('Data/Dataset/ASAP_song.pkl', 'rb'))
-        files = [f'Data/Dataset/asap-dataset/{file}' for file in files]
-
-    elif args.input_dir:
-        files = glob.glob(f'{args.input_dir}/*.mid')
-
-    elif args.input_file:
-        files = [args.input_file]
+        files = pickle.load(open(os.path.join(dataset_dir,'ASAP_song.pkl'), 'rb'))
+        files = [os.path.join(dataset_dir, f'asap-dataset/{file}') for file in files]
 
     else:
         print('not supported')

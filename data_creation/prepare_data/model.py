@@ -72,6 +72,79 @@ class CP(object):
         self.pad_word = [self.event2word[etype]['%s <PAD>' % etype] for etype in self.event2word]
         # print (self.pad_word)
 
+    def quantize_data(self, notes):
+        max_note_offset = max([notes[i][1] for i in range(len(notes))])
+        dbeats = [i for i in range(0, int(round(max_note_offset + 4.0)), 4)]
+        cur_downbeat_timing = 0
+        groups = []
+        for db1, db2 in zip(dbeats[:-1], dbeats[1:]):
+            insiders = []
+            if cur_downbeat_timing == 0:
+                insiders.append(Item(
+                    name='Tempo',
+                    start=0,
+                    end=None,
+                    velocity=None,
+                    pitch=120,
+                    Type=-1))
+
+            for i in range(len(notes)):
+                if (notes[i][0] >= db1) and (notes[i][0] < db2):                    
+                    start_interp_in_bar = max((notes[i][0] - db1) / (db2 - db1), 0)
+                    end_interp_in_bar = (notes[i][1] - db1) / (db2 - db1)
+                    # print (notes[i][3])
+                    insiders.append(Item(
+                        name='Note',
+                        start=cur_downbeat_timing + start_interp_in_bar * (DEFAULT_RESOLUTION * 4),
+                        end=cur_downbeat_timing + end_interp_in_bar * (DEFAULT_RESOLUTION * 4),
+                        velocity=64, 
+                        pitch=max(min(notes[i][2], 107), 22),
+                        Type=0))
+
+            insiders.sort(key=lambda x: (x.start, x.pitch))
+            overall = [cur_downbeat_timing] + insiders + [cur_downbeat_timing + DEFAULT_RESOLUTION * 4]
+            cur_downbeat_timing = cur_downbeat_timing + DEFAULT_RESOLUTION * 4
+            groups.append(overall)
+
+        events = item2event(groups, task='na')
+        return events
+
+    def quantize_and_tokenize(self, data_npy_path, gt_npy_path, max_len):
+        # Now, always assumes 4/4 (already rescaled)
+        data = np.load(data_npy_path, allow_pickle=True)
+        groundtruth = np.load(gt_npy_path, allow_pickle=True)
+
+        all_words, all_ys = [], []
+        for k in tqdm(range(len(data))):
+            events = self.quantize_data(data[k])
+            # print (len(events), len(groundtruth[k]))
+            # print (events[:10], data[k][:10])
+            words, ys = [], []
+            for j in range(len(events)):
+                nts, to_class = [], -1
+                for e in events[j]:
+                    e_text = '{} {}'.format(e.name, e.value)
+                    nts.append(self.event2word[e.name][e_text])
+                words.append(nts)
+                ys.append(groundtruth[k][j])
+
+            # slice to chunks so that max length = 512
+            slice_words, slice_ys = [], []
+            for i in range(0, len(words), max_len):
+                slice_words.append(words[i:i+max_len])
+                slice_ys.append(ys[i:i+max_len])
+
+            if len(slice_words[-1]) < max_len:
+                slice_words[-1] = self.padding(slice_words[-1], max_len, ans=False)
+                slice_ys[-1] = self.padding(slice_ys[-1], max_len, ans=True)
+
+            all_words = all_words + slice_words
+            all_ys = all_ys + slice_ys
+    
+        all_words = np.array(all_words)
+        all_ys = np.array(all_ys)
+        return all_words, all_ys
+
     def extract_events(self, input_path, task='pretrain'):
         if task == 'pretrain':
             note_items, tempo_items = utils.read_items(input_path, sanity_check=True)

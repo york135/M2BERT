@@ -21,7 +21,7 @@ def get_args():
 
     ### path setup ###
     parser.add_argument('--dict_file', type=str, default='data_creation/prepare_data/dict/CP.pkl')
-    parser.add_argument('--name', type=str, default='MidiBert')
+    parser.add_argument('--save_dir', type=str, default='exp/')
 
     ### pre-train dataset ###
     parser.add_argument("--datasets", type=str, nargs='+', default=['pop909', 'pianist8', 'pop1k7'
@@ -115,7 +115,7 @@ def main():
         , args.max_seq_len, args.mask_percent, args.cpu, args.cuda_devices, aux_output_dim=(12+86)*17)
     
     print("\nTraining Start")
-    save_dir = 'exp/' + args.name
+    save_dir = args.save_dir
     os.makedirs(save_dir, exist_ok=True)
     filename = os.path.join(save_dir, 'model.ckpt')
     print("   save model at {}".format(filename))

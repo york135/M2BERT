@@ -8,10 +8,6 @@ import torch
 torch.set_float32_matmul_precision('medium')
 
 from torch.utils.data import DataLoader
-from transformers import LongformerConfig, AutoConfig
-from trainer import BERTTrainer
-from midi_dataset import MidiDataset, collate_fn_random_mix
-
 from tqdm import tqdm
 
 
@@ -22,7 +18,7 @@ def get_args():
     parser.add_argument('--dict_file', type=str, default='data_creation/prepare_data/dict/CP.pkl')
     ### pre-train dataset ###
     parser.add_argument("--datasets", type=str, nargs='+', default=['pop909','pianist8', 'pop1k7'
-                            , 'ASAP', 'emopia', 'tagatraum', 'lmd'])
+                            , 'ASAP', 'emopia'])
     
     ### parameter setting ###
     parser.add_argument('--num_workers', type=int, default=10)
@@ -35,6 +31,7 @@ def get_args():
     parser.add_argument('--lr', type=float, default=2e-5, help='initial learning rate')
     
     ### cuda ###
+    parser.add_argument('--dataset_dir', default="Data/Dataset")
     parser.add_argument("--cpu", action="store_true")   # default: False
     parser.add_argument("--cuda_devices", type=int, nargs='+', default=[0,1], help="CUDA device ids")
 
@@ -43,10 +40,9 @@ def get_args():
     return args
 
 
-def load_data(datasets):
+def load_data(args, datasets):
     training_data = []
-    # root = 'Data/CP_data/tmp'
-    root = 'Data/CP_data/pretrain'
+    root = args.dataset_dir
     total_token_count = 0
 
     for dataset in tqdm(datasets):
@@ -74,7 +70,7 @@ def main():
     pad_word_np = np.array([e2w[etype]['%s <PAD>' % etype] for etype in classes], dtype=int)
 
     print("\nLoading Dataset", args.datasets)
-    load_data(args.datasets)
+    load_data(args, args.datasets)
 
 if __name__ == '__main__':
     main()
