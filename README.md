@@ -54,7 +54,7 @@ This strategy allows us to reduce the randomness for low- and mid-resource tasks
 
 ## Training from scratch
 
-### Prepare all the pretraining datasets
+### Prepare pretraining datasets
 
 The processed npy files can be simply obtained from [https://github.com/york135/M2BERT_files](https://github.com/york135/M2BERT_files)
 
@@ -84,7 +84,7 @@ where `[output_data_root]` is the output directory of the pre-training datasets.
 
 That will take several hours. The total size of output dataset npy files is around 10GB. 
 
-### Prepare all the fine-tuning datasets
+### Prepare fine-tuning datasets
 
 To convert the unquantized SMCBenckmark data to the CP tokens to create the fine-tuning datasets, run:
 
@@ -113,3 +113,19 @@ bash pretrain_full.sh [save_dir] [data_root]
 ```
 
 By the way, I only ran the full dataset pre-training for 25 epochs, so the pre-trained model checkpoint that I provide in the york135/M2BERT_files repo is the 25-epoch version. It is very welcomed if anyone who has very powerful GPU devices can provide the 150-epoch checkpoint (or even longer? I just don't know when will the full dataset pre-training be converged). I'm sure that will be much better than my 25-epoch one.
+
+## Additional experiment results
+
+Here are the ablation study results that we did not include in the ISMIR 2025 paper due to page limit issue.
+
+| Model  | Objectives                                     | Dataset | SGC  | BP   | DbP  | CR   | LK   | ME   |
+|:------:|:----------------------------------------------:| ------- |:----:|:----:|:----:|:----:|:----:|:----:|
+| M2BERT | $\text{RC}_{4, 12, 12}$                        | Reduced | .404 | .867 | .779 | .838 | .791 | .983 |
+| M2BERT | $\text{RC}_{4, 12, 12}$+Pianoroll **nochroma** | Reduced | .419 | .869 | .765 | .840 | .796 | .981 |
+| M2BERT | $\text{RC}_{4, 12, 12}$+Pianoroll (proposed)   | Reduced | .405 | .867 | .768 | .847 | .804 | .982 |
+
+| Model  | Objectives                                     | Dataset | VE   | OTC  | PS   | ER   | VF   | MNID |
+|:------:|:----------------------------------------------:|:-------:|:----:|:----:|:----:|:----:|:----:|:----:|
+| M2BERT | $\text{RC}_{4, 12, 12}$                        | Reduced | .534 | .707 | .740 | .658 | .511 | .719 |
+| M2BERT | $\text{RC}_{4, 12, 12}$+Pianoroll **nochroma** | Reduced | .535 | .703 | .744 | .674 | .523 | .724 |
+| M2BERT | $\text{RC}_{4, 12, 12}$+Pianoroll (proposed)   | Reduced | .532 | .725 | .742 | .667 | .536 | .718 |
