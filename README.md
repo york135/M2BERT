@@ -118,6 +118,8 @@ By the way, I only ran the full dataset pre-training for 25 epochs, so the pre-t
 
 Here are the ablation study results that we did not include in the ISMIR 2025 paper due to page limit issue.
 
+**nochroma** here means that the pianoroll prediction objective only predicts the pianoroll representation but not chroma representation.
+
 | Model  | Objectives                                     | Dataset | SGC  | BP   | DbP  | CR   | LK   | ME   |
 |:------:|:----------------------------------------------:| ------- |:----:|:----:|:----:|:----:|:----:|:----:|
 | M2BERT | $\text{RC}_{4, 12, 12}$                        | Reduced | .404 | .867 | .779 | .838 | .791 | .983 |
