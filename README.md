@@ -132,7 +132,7 @@ For the full dataset (including the lmd_aligned dataset), run:
 bash pretrain_full.sh [save_dir] [data_root]
 ```
 
-By the way, I only ran the full dataset pre-training for 25 epochs, so the pre-trained model checkpoint that I provide in the york135/M2BERT_files repo is the 25-epoch version. It is very welcomed if anyone who has very powerful GPU devices can provide the 150-epoch checkpoint (or even longer? I just don't know when will the full dataset pre-training be converged). I'm sure that will be much better than my 25-epoch one.
+By the way, I only ran the full dataset pre-training for 25 epochs, so the pre-trained model checkpoint that I provide in the york135/M2BERT_files repo is the 25-epoch version. It is very welcomed if anyone who has very powerful GPU devices can provide the 150-epoch checkpoint (or even longer? I just don't know when will the full dataset pre-training converge). I'm sure that will be much better than my 25-epoch one.
 
 ## Additional experiment results
 
