@@ -5,7 +5,7 @@ import data_creation.prepare_data.utils as utils
 import miditoolkit
 import csv, math
 import xlrd
-from utils import *
+from data_creation.prepare_data.utils import *
 
 from music21 import converter
 import music21
@@ -1018,3 +1018,96 @@ class CP(object):
         all_ys = np.array(all_ys)
 
         return all_words, all_ys
+
+    def extract_events_stretch_to_4_4(self, midi_path, task='pretrain'):
+        """
+        Extract events from a MIDI file, stretching each bar to 4/4 (4 beats) regardless of original time signature.
+        Notes are represented as Item objects. Bars are concatenated in the stretched (4/4) timeline.
+        """
+        import miditoolkit
+        from data_creation.prepare_data.utils import Item, DEFAULT_RESOLUTION
+        midi_obj = miditoolkit.midi.parser.MidiFile(midi_path)
+        ticks_per_beat = midi_obj.ticks_per_beat
+
+        # Get time signature changes (default to 4/4 if none)
+        ts_changes = midi_obj.time_signature_changes
+        if not ts_changes:
+            ts_changes = [miditoolkit.midi.containers.TimeSignature(4, 4, 0)]
+
+        # Build a list of (start_tick, numerator, denominator) for each time signature region
+        ts_regions = []
+        for i, ts in enumerate(ts_changes):
+            start_tick = ts.time
+            numerator = ts.numerator
+            denominator = ts.denominator
+            end_tick = ts_changes[i+1].time if i+1 < len(ts_changes) else midi_obj.max_tick
+            ts_regions.append((start_tick, end_tick, numerator, denominator))
+
+        # Gather all notes with instrument index
+        notes = []
+        for inst_idx, inst in enumerate(midi_obj.instruments):
+            cur_inst_notes = inst.notes
+            cur_inst_notes.sort(key=lambda x: (x.start, x.pitch))
+            for note in cur_inst_notes:
+                notes.append({
+                    'onset': note.start,
+                    'end': note.end,
+                    'pitch': max(min(note.pitch, 107), 22),
+                    'velocity': note.velocity,
+                    'Type': inst_idx,
+                })
+        notes.sort(key=lambda x: x['onset'])
+        # print (notes)
+
+        stretched_items = []
+        cumulated_tick_res = 0  # Output timeline in DEFAULT_RESOLUTION ticks
+        for start_tick, end_tick, numerator, denominator in ts_regions:
+            beats_per_bar = numerator
+            ticks_per_bar = int(ticks_per_beat * beats_per_bar * 4 / denominator)
+            bar_start = start_tick
+            while bar_start < end_tick:
+                bar_end = bar_start + ticks_per_bar
+                # Collect notes in this bar
+                bar_notes = [n for n in notes if n['onset'] >= bar_start and n['onset'] < bar_end]
+
+                # print (bar_start, bar_end, bar_notes)
+                # Stretch notes in this bar to 4/4 (4 beats)
+                bar_length = bar_end - bar_start
+                if bar_length == 0:
+                    bar_start = bar_end
+                    continue
+                stretch_ratio = (ticks_per_beat * 4) / bar_length
+                for n in bar_notes:
+                    new_onset = (n['onset'] - bar_start) * stretch_ratio
+                    new_end = (n['end'] - bar_start) * stretch_ratio
+                    # Place in output timeline
+                    start_tick_res = int(new_onset * DEFAULT_RESOLUTION / ticks_per_beat + cumulated_tick_res)
+                    end_tick_res = int(new_end * DEFAULT_RESOLUTION / ticks_per_beat + cumulated_tick_res)
+                    if end_tick_res <= start_tick_res:
+                        continue
+                    stretched_items.append(Item(
+                        name='Note',
+                        start=start_tick_res,
+                        end=end_tick_res,
+                        velocity=n['velocity'],
+                        pitch=n['pitch'],
+                        Type=n['Type']
+                    ))
+
+                    # print (n, start_tick_res, end_tick_res, stretch_ratio)
+                bar_start = bar_end
+                cumulated_tick_res += DEFAULT_RESOLUTION * 4  # Move to next 4/4 bar in output
+
+        if not stretched_items:
+            return None
+        # Sort by start time
+        stretched_items.sort(key=lambda x: x.start)
+        # Quantize items (optional, as in read_items)
+        # from data_creation.prepare_data.utils import quantize_items
+        # stretched_items = quantize_items(stretched_items)
+        # No tempo items are added here; you can add if needed
+        max_time = stretched_items[-1].end
+        from data_creation.prepare_data.utils import group_items, item2event
+        groups = group_items(stretched_items, max_time)
+        events = item2event(groups, task)
+        return events

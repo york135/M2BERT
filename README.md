@@ -18,6 +18,26 @@ You can download them from [https://github.com/york135/M2BERT_files](https://git
 
 Some of the files have to be unzipped.
 
+
+
+## Feature extraction with a pretrained model
+
+(Added 2025/10/09)
+
+```
+python extract_embedding.py \
+  --dict_path data_creation/prepare_data/dict/CP.pkl \
+  --midi_path path/to/your_midi_file.mid \
+  --model_ckpt path/to/pretrained_M2BERT.ckpt \
+  --output_pickle output_features.pkl
+```
+
+Replace `midi_path`, `model_ckpt`, `output_pickle` with your desired input midi file path, pretrained model checkpoints, and the output path that stores the note feature extracted by the pretrained model.
+
+This code first converts non-4/4 bars to 4/4 bars by stretching note durations, then run the pretrained model to extract note features. It outputs note features of **all** layers' outputs. For the pretrained M2BERT model with 12 layers, assume that your MIDI file has less than 1024 notes (otherwise the note list will be sliced into 1024-note chunks) the output shape would be (1, 13, 1024, 768) (13=1 input embedding layer + 12 layers).
+
+
+
 ## Fine-tuning
 
 Please see `scripts/finetune_modernbert_script.sh`.
